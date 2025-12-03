@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>基金组合投资分析报告</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            padding: 30px;
+            background: linear-gradient(135deg, #ff7e5f 0%, #feb47b 100%);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            color: white;
+        }
+        
+        .header .date {
+            opacity: 0.9;
+            color: white;
+            margin-bottom: 5px;
+        }
+        
+        .header .ai-label {
+            font-size: 0.9em;
+            color: rgba(255, 255, 255, 0.8);
+            background: rgba(0, 0, 0, 0.2);
+            padding: 4px 12px;
+            border-radius: 15px;
+            display: inline-block;
+            margin-top: 5px;
+        }
+        
+        .ai-tag {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.8em;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease;
+            border: 1px solid #e9ecef;
+            position: relative;
+        }
+        
+        .card:hover {
+            transform: translateY(-3px);
+        }
+        
+        .card h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #ff7e5f;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .summary-item {
+            background: linear-gradient(135deg, #ff7e5f 0%, #feb47b 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(255, 126, 95, 0.3);
+        }
+        
+        .summary-item h3 {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+        
+        .summary-item .value {
+            font-size: 2em;
+            font-weight: bold;
+        }
+        
+        /* 桌面端表格样式 */
+        .desktop-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        .desktop-table th, .desktop-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .desktop-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .desktop-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        /* 移动端卡片式表格样式 */
+        .mobile-table {
+            display: none;
+        }
+        
+        .mobile-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #ff7e5f;
+        }
+        
+        .mobile-card-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .mobile-card-row:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        
+        .mobile-card-label {
+            font-weight: 600;
+            color: #2c3e50;
+            min-width: 120px;
+        }
+        
+        .mobile-card-value {
+            text-align: right;
+            flex: 1;
+        }
+        
+        .chart-container {
+            height: 300px;
+            margin: 20px 0;
+        }
+        
+        .rating {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        
+        .rating.excellent {
+            background: #ff7e5f;
+            color: white;
+        }
+        
+        .rating.good {
+            background: #feb47b;
+            color: white;
+        }
+        
+        .rating.fair {
+            background: #6a89cc;
+            color: white;
+        }
+        
+        .recommendation {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-top: 30px;
+            box-shadow: 0 5px 20px rgba(44, 62, 80, 0.3);
+        }
+        
+        .recommendation h2 {
+            color: white;
+            border-bottom: 3px solid rgba(255, 255, 255, 0.3);
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+        }
+        
+        .recommendation p {
+            margin-bottom: 15px;
+            line-height: 1.8;
+        }
+        
+        .recommendation strong {
+            color: #ffd89b;
+            font-weight: 600;
+        }
+        
+        .recommendation ul {
+            margin: 15px 0;
+            padding-left: 20px;
+        }
+        
+        .recommendation li {
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+        
+        .print-btn {
+            background: linear-gradient(135deg, #ff7e5f 0%, #feb47b 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(255, 126, 95, 0.3);
+        }
+        
+        .print-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 126, 95, 0.4);
+        }
+        
+        .footer-note {
+            text-align: center;
+            margin-top: 20px;
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            /* 在移动端隐藏桌面表格，显示卡片式表格 */
+            .desktop-table {
+                display: none;
+            }
+            
+            .mobile-table {
+                display: block;
+            }
+            
+            .chart-container {
+                height: 250px;
+            }
+            
+            .card {
+                padding: 15px;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .recommendation {
+                padding: 20px;
+            }
+            
+            .ai-tag {
+                display: block;
+                margin: 5px 0;
+                width: fit-content;
+            }
+        }
+        
+        @media (min-width: 769px) {
+            .mobile-table {
+                display: none;
+            }
+            
+            .desktop-table {
+                display: table;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 基金组合投资分析报告</h1>
+            <p class="date">报告日期：2025年11月25日</p>
+            <div class="ai-label">🤖 本报告由AI生成</div>
+        </div>
+
+        <div class="summary-grid">
+            <div class="summary-item">
+                <h3>💰 总投资金额</h3>
+                <div class="value">100,000元</div>
+            </div>
+            <div class="summary-item">
+                <h3>📈 年化收益率</h3>
+                <div class="value">7.74%</div>
+            </div>
+            <div class="summary-item">
+                <h3>⚠️ 最大回撤</h3>
+                <div class="value">-10.14%</div>
+            </div>
+            <div class="summary-item">
+                <h3>⚖️ 夏普比率</h3>
+                <div class="value">0.75</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>🎯 投资组合配置 <span class="ai-tag">AI分析</span></h2>
+            
+            <!-- 桌面端表格 -->
+            <table class="desktop-table">
+                <thead>
+                    <tr>
+                        <th>基金名称</th>
+                        <th>基金代码</th>
+                        <th>类型</th>
+                        <th>配置比例</th>
+                        <th>投资金额</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>易方达稳健收益债券A</td>
+                        <td>110007</td>
+                        <td>债券型</td>
+                        <td>73%</td>
+                        <td>73,000元</td>
+                    </tr>
+                    <tr>
+                        <td>纳斯达克ETF</td>
+                        <td>513300</td>
+                        <td>海外股票</td>
+                        <td>19%</td>
+                        <td>19,000元</td>
+                    </tr>
+                    <tr>
+                        <td>金鹰信息产业股票A</td>
+                        <td>003853</td>
+                        <td>国内股票</td>
+                        <td>8%</td>
+                        <td>8,000元</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <!-- 移动端卡片式表格 -->
+            <div class="mobile-table">
+                <div class="mobile-card">
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">基金名称</div>
+                        <div class="mobile-card-value">易方达稳健收益债券A</div>
+                    </div>
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">基金代码</div>
+                        <div class="mobile-card-value">110007</div>
+                    </div>
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">类型</div>
+                        <div class="mobile-card-value">债券型</div>
+                    </div>
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">配置比例</div>
+                        <div class="mobile-card-value">73%</div>
+                    </div>
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">投资金额</div>
+                        <div class="mobile-card-value">73,000元</div>
+                    </div>
+                </div>
+                
+                <div class="mobile-card">
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">基金名称</div>
+                        <div class="mobile-card-value">纳斯达克ETF</div>
+                    </div>
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">基金代码</div>
+                        <div class="mobile-card-value">513300</div>
+                    </div>
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">类型</div>
+                        <div class="mobile-card-value">海外股票</div>
+                    </div>
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">配置比例</div>
+                        <div class="mobile-card-value">19%</div>
+                    </div>
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">投资金额</div>
+                        <div class="mobile-card-value">19,000元</div>
+                    </div>
+                </div>
+                
+                <div class="mobile-card">
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">基金名称</div>
+                        <div class="mobile-card-value">金鹰信息产业股票A</div>
+                    </div>
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">基金代码</div>
+                        <div class="mobile-card-value">003853</div>
+                    </div>
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">类型</div>
+                        <div class="mobile-card-value">国内股票</div>
+                    </div>
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">配置比例</div>
+                        <div class="mobile-card-value">8%</div>
+                    </div>
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">投资金额</div>
+                        <div class="mobile-card-value">8,000元</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📊 业绩表现分析 <span class="ai-tag">AI分析</span></h2>
+            <p style="color: #6c757d; margin-bottom: 15px;">基于5年历史数据回测</p>
+            <div class="chart-container">
+                <canvas id="performanceChart"></canvas>
+            </div>
+            
+            <!-- 桌面端表格 -->
+            <table class="desktop-table">
+                <thead>
+                    <tr>
+                        <th>指标</th>
+                        <th>数值</th>
+                        <th>评价</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>年化收益率</td>
+                        <td>7.74%</td>
+                        <td>⭐⭐⭐⭐ <span class="rating excellent">优秀</span></td>
+                    </tr>
+                    <tr>
+                        <td>最大回撤</td>
+                        <td>-10.14%</td>
+                        <td>⭐⭐⭐⭐ <span class="rating good">良好</span></td>
+                    </tr>
+                    <tr>
+                        <td>波动率</td>
+                        <td>6.69%</td>
+                        <td>⭐⭐⭐⭐ <span class="rating good">较低</span></td>
+                    </tr>
+                    <tr>
+                        <td>夏普比率</td>
+                        <td>0.75</td>
+                        <td>⭐⭐⭐ <span class="rating fair">中等</span></td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <!-- 移动端卡片式表格 -->
+            <div class="mobile-table">
+                <div class="mobile-card">
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">指标</div>
+                        <div class="mobile-card-value">年化收益率</div>
+                    </div>
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">数值</div>
+                        <div class="mobile-card-value">7.74%</div>
+                    </div>
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">评价</div>
+                        <div class="mobile-card-value">⭐⭐⭐⭐ <span class="rating excellent">优秀</span></div>
+                    </div>
+                </div>
+                
+                <div class="mobile-card">
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">指标</div>
+                        <div class="mobile-card-value">最大回撤</div>
+                    </div>
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">数值</div>
+                        <div class="mobile-card-value">-10.14%</div>
+                    </div>
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">评价</div>
+                        <div class="mobile-card-value">⭐⭐⭐⭐ <span class="rating good">良好</span></div>
+                    </div>
+                </div>
+                
+                <div class="mobile-card">
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">指标</div>
+                        <div class="mobile-card-value">波动率</div>
+                    </div>
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">数值</div>
+                        <div class="mobile-card-value">6.69%</div>
+                    </div>
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">评价</div>
+                        <div class="mobile-card-value">⭐⭐⭐⭐ <span class="rating good">较低</span></div>
+                    </div>
+                </div>
+                
+                <div class="mobile-card">
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">指标</div>
+                        <div class="mobile-card-value">夏普比率</div>
+                    </div>
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">数值</div>
+                        <div class="mobile-card-value">0.75</div>
+                    </div>
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">评价</div>
+                        <div class="mobile-card-value">⭐⭐⭐ <span class="rating fair">中等</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>🔗 基金相关性分析 <span class="ai-tag">AI分析</span></h2>
+            <div class="chart-container">
+                <canvas id="correlationChart"></canvas>
+            </div>
+            
+            <!-- 桌面端表格 -->
+            <table class="desktop-table">
+                <thead>
+                    <tr>
+                        <th>基金对</th>
+                        <th>相关性系数</th>
+                        <th>分散效果</th>
+                        <th>评价</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>纳斯达克ETF vs 金鹰信息产业</td>
+                        <td>0.02</td>
+                        <td>⭐⭐⭐⭐⭐</td>
+                        <td><span class="rating excellent">极佳分散</span></td>
+                    </tr>
+                    <tr>
+                        <td>纳斯达克ETF vs 易方达债券</td>
+                        <td>0.01</td>
+                        <td>⭐⭐⭐⭐⭐</td>
+                        <td><span class="rating excellent">极佳分散</span></td>
+                    </tr>
+                    <tr>
+                        <td>金鹰信息产业 vs 易方达债券</td>
+                        <td>0.64</td>
+                        <td>⭐⭐⭐</td>
+                        <td><span class="rating fair">中等相关</span></td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <!-- 移动端卡片式表格 -->
+            <div class="mobile-table">
+                <div class="mobile-card">
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">基金对</div>
+                        <div class="mobile-card-value">纳斯达克ETF vs 金鹰信息产业</div>
+                    </div>
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">相关性系数</div>
+                        <div class="mobile-card-value">0.02</div>
+                    </div>
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">分散效果</div>
+                        <div class="mobile-card-value">⭐⭐⭐⭐⭐</div>
+                    </div>
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">评价</div>
+                        <div class="mobile-card-value"><span class="rating excellent">极佳分散</span></div>
+                    </div>
+                </div>
+                
+                <div class="mobile-card">
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">基金对</div>
+                        <div class="mobile-card-value">纳斯达克ETF vs 易方达债券</div>
+                    </div>
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">相关性系数</div>
+                        <div class="mobile-card-value">0.01</div>
+                    </div>
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">分散效果</div>
+                        <div class="mobile-card-value">⭐⭐⭐⭐⭐</div>
+                    </div>
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">评价</div>
+                        <div class="mobile-card-value"><span class="rating excellent">极佳分散</span></div>
+                    </div>
+                </div>
+                
+                <div class="mobile-card">
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">基金对</div>
+                        <div class="mobile-card-value">金鹰信息产业 vs 易方达债券</div>
+                    </div>
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">相关性系数</div>
+                        <div class="mobile-card-value">0.64</div>
+                    </div>
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">分散效果</div>
+                        <div class="mobile-card-value">⭐⭐⭐</div>
+                    </div>
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">评价</div>
+                        <div class="mobile-card-value"><span class="rating fair">中等相关</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📋 三维度诊断评分 <span class="ai-tag">AI诊断</span></h2>
+            <div class="chart-container">
+                <canvas id="radarChart"></canvas>
+            </div>
+            
+            <!-- 桌面端表格 -->
+            <table class="desktop-table">
+                <thead>
+                    <tr>
+                        <th>维度</th>
+                        <th>评分</th>
+                        <th>诊断结果</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>资产配置</td>
+                        <td>3/5分</td>
+                        <td>适当配置货币现金和另类资产</td>
+                    </tr>
+                    <tr>
+                        <td>相关性分析</td>
+                        <td>5/5分 ⭐⭐⭐⭐⭐</td>
+                        <td>优秀！基金相关性不高，风险分散好</td>
+                    </tr>
+                    <tr>
+                        <td>回测表现</td>
+                        <td>3/5分</td>
+                        <td>风险与收益水平一般</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <!-- 移动端卡片式表格 -->
+            <div class="mobile-table">
+                <div class="mobile-card">
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">维度</div>
+                        <div class="mobile-card-value">资产配置</div>
+                    </div>
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">评分</div>
+                        <div class="mobile-card-value">3/5分</div>
+                    </div>
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">诊断结果</div>
+                        <div class="mobile-card-value">适当配置货币现金和另类资产</div>
+                    </div>
+                </div>
+                
+                <div class="mobile-card">
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">维度</div>
+                        <div class="mobile-card-value">相关性分析</div>
+                    </div>
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">评分</div>
+                        <div class="mobile-card-value">5/5分 ⭐⭐⭐⭐⭐</div>
+                    </div>
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">诊断结果</div>
+                        <div class="mobile-card-value">优秀！基金相关性不高，风险分散好</div>
+                    </div>
+                </div>
+                
+                <div class="mobile-card">
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">维度</div>
+                        <div class="mobile-card-value">回测表现</div>
+                    </div>
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">评分</div>
+                        <div class="mobile-card-value">3/5分</div>
+                    </div>
+                    <div class="mobile-card-row">
+                        <div class="mobile-card-label">诊断结果</div>
+                        <div class="mobile-card-value">风险与收益水平一般</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="recommendation">
+            <h2>💡 投资建议与结论 <span class="ai-tag">AI建议</span></h2>
+            <p><strong>✅ 这个投资组合非常适合您的需求！</strong></p>
+            <br>
+            <p><strong>🎯 目标达成情况：</strong></p>
+            <p>• 年化收益7.74% → 超过5%目标 ✅</p>
+            <p>• 最大回撤10.14% → 接近但未超过10%上限 ⚠️</p>
+            <p>• 投资期限3年 → 完全匹配 ✅</p>
+            <br>
+            <p><strong>📈 组合优势：</strong></p>
+            <p>• 完美的地域分散（美国+中国市场）</p>
+            <p>• 优秀的资产类别分散（债券+股票+海外）</p>
+            <p>• 风险控制良好，回撤可控</p>
+            <br>
+            <p><strong>🔄 优化建议：</strong></p>
+            <p>• 增加5-10%货币基金提升流动性</p>
+            <p>• 考虑5%黄金或REITs进一步分散风险</p>
+            <p>• A股部分可进一步分散到不同行业</p>
+        </div>
+
+        <div class="footer-note">
+            <p>📝 本报告基于人工智能算法生成，仅供参考。投资有风险，入市需谨慎。</p>
+        </div>
+
+        <center>
+            <button class="print-btn" onclick="window.print()">🖨️ 打印报告</button>
+        </center>
+    </div>
+
+    <script>
+        // 性能指标图表
+        const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+        new Chart(performanceCtx, {
+            type: 'bar',
+            data: {
+                labels: ['年化收益率', '最大回撤', '波动率', '夏普比率'],
+                datasets: [{
+                    label: '数值',
+                    data: [7.74, -10.14, 6.69, 0.75],
+                    backgroundColor: [
+                        'rgba(255, 126, 95, 0.8)',
+                        'rgba(254, 180, 123, 0.8)',
+                        'rgba(106, 137, 204, 0.8)',
+                        'rgba(79, 172, 254, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgb(255, 126, 95)',
+                        'rgb(254, 180, 123)',
+                        'rgb(106, 137, 204)',
+                        'rgb(79, 172, 254)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // 相关性矩阵图表
+        const correlationCtx = document.getElementById('correlationChart').getContext('2d');
+        new Chart(correlationCtx, {
+            type: 'radar',
+            data: {
+                labels: ['地域分散', '资产类别分散', '行业分散', '风险控制', '收益潜力'],
+                datasets: [{
+                    label: '分散效果评分',
+                    data: [5, 4, 4, 4, 4],
+                    backgroundColor: 'rgba(255, 126, 95, 0.2)',
+                    borderColor: 'rgb(255, 126, 95)',
+                    pointBackgroundColor: 'rgb(255, 126, 95)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgb(255, 126, 95)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        angleLines: {
+                            display: true
+                        },
+                        suggestedMin: 0,
+                        suggestedMax: 5
+                    }
+                }
+            }
+        });
+
+        // 三维度诊断雷达图
+        const radarCtx = document.getElementById('radarChart').getContext('2d');
+        new Chart(radarCtx, {
+            type: 'radar',
+            data: {
+                labels: ['资产配置', '相关性分析', '回测表现'],
+                datasets: [{
+                    label: '评分',
+                    data: [3, 5, 3],
+                    backgroundColor: 'rgba(79, 172, 254, 0.2)',
+                    borderColor: 'rgb(79, 172, 254)',
+                    pointBackgroundColor: 'rgb(79, 172, 254)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgb(79, 172, 254)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        angleLines: {
+                            display: true
+                        },
+                        suggestedMin: 0,
+                        suggestedMax: 5
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
