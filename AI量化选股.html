@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI量化选股 - 高股息低波动策略</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: #f8fafc;
+        }
+        
+        .step-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .step-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .stock-item {
+            transition: background-color 0.2s;
+        }
+        
+        .stock-item:hover {
+            background-color: #f1f5f9;
+        }
+        
+        .indicator-tag {
+            font-size: 0.85rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            width: fit-content;
+        }
+        
+        .user-feedback {
+            background: linear-gradient(135deg, #e8f4f8 0%, #f0f8fb 100%);
+            border-left: 4px solid #4299e1;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .user-feedback::before {
+            content: '"';
+            position: absolute;
+            top: -10px;
+            left: 10px;
+            font-size: 60px;
+            color: rgba(66, 153, 225, 0.1);
+            font-family: Georgia, serif;
+            line-height: 1;
+        }
+        
+        .timeline-connector {
+            position: absolute;
+            left: 1.5rem;
+            top: 2.5rem;
+            bottom: 0;
+            width: 2px;
+            background-color: #e2e8f0;
+            z-index: 0;
+        }
+        
+        .stock-result-header {
+            background-color: #f8fafc;
+            border-radius: 8px 8px 0 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .stock-count-badge {
+            background-color: #4299e1;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+        }
+        
+        .stock-count-badge i {
+            margin-right: 6px;
+            font-size: 0.8rem;
+        }
+        
+        .progress-card {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .progress-card::after {
+            content: attr(data-step);
+            position: absolute;
+            bottom: -10px;
+            right: -10px;
+            font-size: 48px;
+            font-weight: 700;
+            color: rgba(0, 0, 0, 0.05);
+            line-height: 1;
+        }
+        
+        @media (max-width: 768px) {
+            .timeline-connector {
+                left: 1rem;
+            }
+            
+            .stock-preview {
+                grid-template-columns: 1fr;
+            }
+            
+            .stock-result-header {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 0.5rem !important;
+                padding: 0.75rem !important;
+            }
+            
+            .progress-grid {
+                grid-template-columns: 1fr 1fr !important;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- 顶部导航 -->
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center">
+            <div class="flex items-center mb-4 md:mb-0">
+                <i class="fa fa-line-chart text-blue-600 text-2xl mr-3"></i>
+                <h1 class="text-xl md:text-2xl font-bold text-gray-800">AI量化选股助手</h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span class="text-sm text-gray-500 flex items-center">
+                    <i class="fa fa-calendar-o mr-1"></i> 选股日期: 2025-12-03
+                </span>
+                <span class="text-sm text-gray-500 flex items-center">
+                    <i class="fa fa-clock-o mr-1"></i> 量化计算耗时: 约487秒
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主内容区 -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- 筛选概览（仅保留4个卡片，添加步骤数字） -->
+        <section class="mb-10 bg-white rounded-xl shadow-lg p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                <i class="fa fa-bar-chart text-blue-500 mr-2"></i>AI量化选股进度概览
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 progress-grid">
+                <div class="bg-blue-50 rounded-lg p-5 border border-blue-100 progress-card" data-step="01">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="text-sm text-blue-700 font-medium">初始量化结果</div>
+                        <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-medium">步骤1</span>
+                    </div>
+                    <div class="text-4xl font-bold text-blue-600">262 <span class="text-base font-normal text-gray-500">只</span></div>
+                    <div class="text-xs text-gray-500 mt-2">股息率≥4% + 波动率≤25%</div>
+                </div>
+                <div class="bg-green-50 rounded-lg p-5 border border-green-100 progress-card" data-step="02">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="text-sm text-green-700 font-medium">二次量化结果</div>
+                        <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-medium">步骤2</span>
+                    </div>
+                    <div class="text-4xl font-bold text-green-600">51 <span class="text-base font-normal text-gray-500">只</span></div>
+                    <div class="text-xs text-gray-500 mt-2">新增夏普比率≥0.6</div>
+                </div>
+                <div class="bg-purple-50 rounded-lg p-5 border border-purple-100 progress-card" data-step="03">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="text-sm text-purple-700 font-medium">三次量化结果</div>
+                        <span class="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full font-medium">步骤3</span>
+                    </div>
+                    <div class="text-4xl font-bold text-purple-600">40 <span class="text-base font-normal text-gray-500">只</span></div>
+                    <div class="text-xs text-gray-500 mt-2">新增股息支付率≥40%</div>
+                </div>
+                <div class="bg-red-50 rounded-lg p-5 border border-red-100 progress-card" data-step="04">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="text-sm text-red-700 font-medium">最终量化结果</div>
+                        <span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full font-medium">步骤4</span>
+                    </div>
+                    <div class="text-4xl font-bold text-red-600">14 <span class="text-base font-normal text-gray-500">只</span></div>
+                    <div class="text-xs text-gray-500 mt-2">收紧所有量化指标条件</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 筛选步骤详情 -->
+        <section class="mb-10">
+            <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                <i class="fa fa-list-ol text-blue-500 mr-2"></i>AI量化选股步骤详情
+            </h2>
+            
+            <!-- 步骤1 -->
+            <div class="relative mb-12 step-card bg-white rounded-xl shadow-md p-6">
+                <div class="absolute -left-4 top-4 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold z-10">1</div>
+                <div class="timeline-connector"></div>
+                
+                <div class="ml-6">
+                    <div class="flex justify-between items-start mb-6">
+                        <h3 class="text-lg font-semibold text-gray-800">初始量化：高股息低波动策略</h3>
+                    </div>
+                    
+                    <!-- 突出显示用户需求 -->
+                    <div class="mb-6">
+                        <h4 class="text-sm font-medium text-gray-600 mb-2 flex items-center">
+                            <i class="fa fa-user-circle text-blue-500 mr-2"></i>量化需求
+                        </h4>
+                        <p class="text-gray-800 text-lg font-medium p-4 rounded-lg user-feedback">
+                            基于AI量化模型筛选高股息低波动的优质股票
+                        </p>
+                    </div>
+                    
+                    <!-- 筛选指标（竖着排列） -->
+                    <div class="mb-6">
+                        <h4 class="text-sm font-medium text-gray-600 mb-3 flex items-center">
+                            <i class="fa fa-filter text-blue-500 mr-2"></i>量化指标
+                        </h4>
+                        <div class="flex flex-col gap-3">
+                            <span class="indicator-tag bg-blue-100 text-blue-800 flex items-center">
+                                <i class="fa fa-usd mr-2"></i>股息率TTM ≥ 4%
+                            </span>
+                            <span class="indicator-tag bg-green-100 text-green-800 flex items-center">
+                                <i class="fa fa-area-chart mr-2"></i>252日残差收益波动率 ≤ 25%
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- 股票结果（总数在列表上方） -->
+                    <div>
+                        <div class="mb-3">
+                            <span class="stock-count-badge">
+                                <i class="fa fa-check-circle"></i> 共262只股票（展示前5只）
+                            </span>
+                        </div>
+                        <div class="overflow-x-auto border rounded-lg">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">股票代码</th>
+                                        <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">股票名称</th>
+                                        <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">股息率TTM</th>
+                                        <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">波动率(%)</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <tr class="stock-item">
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">000157</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">中联重科</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">6.11%</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">1.40%</td>
+                                    </tr>
+                                    <tr class="stock-item">
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">000915</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">华特达因</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">7.45%</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">1.58%</td>
+                                    </tr>
+                                    <tr class="stock-item">
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">002228</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">合兴包装</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">6.47%</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">2.49%</td>
+                                    </tr>
+                                    <tr class="stock-item">
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">002563</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">森马服饰</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">7.99%</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">2.13%</td>
+                                    </tr>
+                                    <tr class="stock-item">
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">600329</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">达仁堂</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">8.14%</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">2.06%</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 步骤2 -->
+            <div class="relative mb-12 step-card bg-white rounded-xl shadow-md p-6">
+                <div class="absolute -left-4 top-4 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold z-10">2</div>
+                <div class="timeline-connector"></div>
+                
+                <div class="ml-6">
+                    <div class="flex justify-between items-start mb-6">
+                        <h3 class="text-lg font-semibold text-gray-800">二次量化：优化量化指标</h3>
+                    </div>
+                    
+                    <!-- 突出显示用户反馈 -->
+                    <div class="mb-6">
+                        <h4 class="text-sm font-medium text-gray-600 mb-2 flex items-center">
+                            <i class="fa fa-comments text-green-500 mr-2"></i>策略调整反馈
+                        </h4>
+                        <p class="text-gray-800 text-lg font-medium p-4 rounded-lg user-feedback">
+                            量化结果数量过多，需要优化筛选条件
+                        </p>
+                    </div>
+                    
+                    <!-- 筛选指标（竖着排列） -->
+                    <div class="mb-6">
+                        <h4 class="text-sm font-medium text-gray-600 mb-3 flex items-center">
+                            <i class="fa fa-filter text-green-500 mr-2"></i>量化指标（优化后）
+                        </h4>
+                        <div class="flex flex-col gap-3">
+                            <span class="indicator-tag bg-blue-100 text-blue-800 flex items-center">
+                                <i class="fa fa-usd mr-2"></i>股息率TTM ≥ 5%
+                            </span>
+                            <span class="indicator-tag bg-green-100 text-green-800 flex items-center">
+                                <i class="fa fa-area-chart mr-2"></i>252日残差收益波动率 ≤ 20%
+                            </span>
+                            <span class="indicator-tag bg-purple-100 text-purple-800 flex items-center">
+                                <i class="fa fa-line-chart mr-2"></i>120日夏普比率 ≥ 0.6
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- 股票结果（总数在列表上方） -->
+                    <div>
+                        <div class="mb-3">
+                            <span class="stock-count-badge bg-green-600">
+                                <i class="fa fa-check-circle"></i> 共51只股票（展示前5只）
+                            </span>
+                        </div>
+                        <div class="overflow-x-auto border rounded-lg">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">股票代码</th>
+                                        <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">股票名称</th>
+                                        <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">股息率TTM</th>
+                                        <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">波动率(%)</th>
+                                        <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">夏普比率</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <tr class="stock-item">
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">000157</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">中联重科</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">6.11%</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">1.40%</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">1.61</td>
+                                    </tr>
+                                    <tr class="stock-item">
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">000915</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">华特达因</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">7.45%</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">1.58%</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">1.12</td>
+                                    </tr>
+                                    <tr class="stock-item">
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">002228</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">合兴包装</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">6.47%</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">2.49%</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">1.53</td>
+                                    </tr>
+                                    <tr class="stock-item">
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">002563</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">森马服饰</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">7.99%</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">2.13%</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">1.40</td>
+                                    </tr>
+                                    <tr class="stock-item">
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">600329</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">达仁堂</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">8.14%</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">2.06%</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">1.98</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 步骤3 -->
+            <div class="relative mb-12 step-card bg-white rounded-xl shadow-md p-6">
+                <div class="absolute -left-4 top-4 w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold z-10">3</div>
+                <div class="timeline-connector"></div>
+                
+                <div class="ml-6">
+                    <div class="flex justify-between items-start mb-6">
+                        <h3 class="text-lg font-semibold text-gray-800">三次量化：增加可持续性量化指标</h3>
+                    </div>
+                    
+                    <!-- 突出显示用户反馈 -->
+                    <div class="mb-6">
+                        <h4 class="text-sm font-medium text-gray-600 mb-2 flex items-center">
+                            <i class="fa fa-comments text-purple-500 mr-2"></i>策略调整反馈
+                        </h4>
+                        <p class="text-gray-800 text-lg font-medium p-4 rounded-lg user-feedback">
+                            量化结果仍偏多，需要增加可持续性筛选维度
+                        </p>
+                    </div>
+                    
+                    <!-- 筛选指标（竖着排列） -->
+                    <div class="mb-6">
+                        <h4 class="text-sm font-medium text-gray-600 mb-3 flex items-center">
+                            <i class="fa fa-filter text-purple-500 mr-2"></i>量化指标（新增）
+                        </h4>
+                        <div class="flex flex-col gap-3">
+                            <span class="indicator-tag bg-blue-100 text-blue-800 flex items-center">
+                                <i class="fa fa-usd mr-2"></i>股息率TTM ≥ 5%
+                            </span>
+                            <span class="indicator-tag bg-green-100 text-green-800 flex items-center">
+                                <i class="fa fa-area-chart mr-2"></i>252日残差收益波动率 ≤ 15%
+                            </span>
+                            <span class="indicator-tag bg-purple-100 text-purple-800 flex items-center">
+                                <i class="fa fa-line-chart mr-2"></i>120日夏普比率 ≥ 0.8
+                            </span>
+                            <span class="indicator-tag bg-orange-100 text-orange-800 flex items-center">
+                                <i class="fa fa-percent mr-2"></i>股息支付率TTM ≥ 40%
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- 股票结果（总数在列表上方） -->
+                    <div>
+                        <div class="mb-3">
+                            <span class="stock-count-badge bg-purple-600">
+                                <i class="fa fa-check-circle"></i> 共40只股票（展示前5只）
+                            </span>
+                        </div>
+                        <div class="overflow-x-auto border rounded-lg">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">股票代码</th>
+                                        <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">股票名称</th>
+                                        <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">股息率TTM</th>
+                                        <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">波动率(%)</th>
+                                        <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">夏普比率</th>
+                                        <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">股息支付率</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <tr class="stock-item">
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">000157</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">中联重科</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">6.11%</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">1.40%</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">1.61</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">100.52%</td>
+                                    </tr>
+                                    <tr class="stock-item">
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">000915</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">华特达因</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">7.45%</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">1.58%</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">1.12</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">104.94%</td>
+                                    </tr>
+                                    <tr class="stock-item">
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">002228</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">合兴包装</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">6.47%</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">2.49%</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">1.53</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">309.47%</td>
+                                    </tr>
+                                    <tr class="stock-item">
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">002563</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">森马服饰</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">7.99%</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">2.13%</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">1.40</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">146.55%</td>
+                                    </tr>
+                                    <tr class="stock-item">
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">600329</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">达仁堂</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">8.14%</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">2.06%</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">1.98</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">80.29%</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 步骤4 -->
+            <div class="relative step-card bg-white rounded-xl shadow-md p-6">
+                <div class="absolute -left-4 top-4 w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white font-bold z-10">4</div>
+                
+                <div class="ml-6">
+                    <div class="flex justify-between items-start mb-6">
+                        <h3 class="text-lg font-semibold text-gray-800">最终量化：收紧量化指标条件</h3>
+                    </div>
+                    
+                    <!-- 突出显示用户反馈 -->
+                    <div class="mb-6">
+                        <h4 class="text-sm font-medium text-gray-600 mb-2 flex items-center">
+                            <i class="fa fa-comments text-red-500 mr-2"></i>策略调整反馈
+                        </h4>
+                        <p class="text-gray-800 text-lg font-medium p-4 rounded-lg user-feedback">
+                            量化结果仍偏多，不新增指标，收紧现有量化条件
+                        </p>
+                    </div>
+                    
+                    <!-- 筛选指标（竖着排列） -->
+                    <div class="mb-6">
+                        <h4 class="text-sm font-medium text-gray-600 mb-3 flex items-center">
+                            <i class="fa fa-filter text-red-500 mr-2"></i>最终量化指标
+                        </h4>
+                        <div class="flex flex-col gap-3">
+                            <span class="indicator-tag bg-blue-100 text-blue-800 flex items-center font-medium">
+                                <i class="fa fa-usd mr-2"></i>股息率TTM ≥ 6%
+                            </span>
+                            <span class="indicator-tag bg-green-100 text-green-800 flex items-center font-medium">
+                                <i class="fa fa-area-chart mr-2"></i>252日残差收益波动率 ≤ 10%
+                            </span>
+                            <span class="indicator-tag bg-purple-100 text-purple-800 flex items-center font-medium">
+                                <i class="fa fa-line-chart mr-2"></i>120日夏普比率 ≥ 1.0
+                            </span>
+                            <span class="indicator-tag bg-orange-100 text-orange-800 flex items-center font-medium">
+                                <i class="fa fa-percent mr-2"></i>股息支付率TTM ≥ 50%
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- 最终股票结果（总数在列表上方） -->
+                    <div>
+                        <div class="mb-3">
+                            <span class="stock-count-badge bg-red-600">
+                                <i class="fa fa-check-circle"></i> 共14只股票（全部展示）
+                            </span>
+                        </div>
+                        <div class="overflow-x-auto border rounded-lg">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">股票代码</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">股票名称</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">股息率TTM</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">波动率(%)</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">夏普比率</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">股息支付率</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <tr class="stock-item">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">000157</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">中联重科</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">6.11%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">1.40%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">1.61</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">100.52%</td>
+                                    </tr>
+                                    <tr class="stock-item">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">000915</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">华特达因</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">7.45%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">1.58%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">1.12</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">104.94%</td>
+                                    </tr>
+                                    <tr class="stock-item">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">002228</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">合兴包装</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">6.47%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">2.49%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">1.53</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">309.47%</td>
+                                    </tr>
+                                    <tr class="stock-item">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">002563</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">森马服饰</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">7.99%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">2.13%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">1.40</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">146.55%</td>
+                                    </tr>
+                                    <tr class="stock-item">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">600329</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">达仁堂</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">8.14%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">2.06%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">1.98</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">80.29%</td>
+                                    </tr>
+                                    <tr class="stock-item">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">600546</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">山煤国际</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">6.51%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">1.85%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">1.27</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">110.95%</td>
+                                    </tr>
+                                    <tr class="stock-item">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">601088</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">中国神华</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">7.79%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">1.17%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">1.46</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">118.46%</td>
+                                    </tr>
+                                    <tr class="stock-item">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">601339</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">百隆东方</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">7.48%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">1.68%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">1.35</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">112.34%</td>
+                                    </tr>
+                                    <tr class="stock-item">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">601886</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">江河集团</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">6.96%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">1.94%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">2.40</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">94.09%</td>
+                                    </tr>
+                                    <tr class="stock-item">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">603156</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">养元饮品</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">6.73%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">2.55%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">1.27</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">145.42%</td>
+                                    </tr>
+                                    <tr class="stock-item">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">603165</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">荣晟环保</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">8.88%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">1.96%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">1.33</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">143.84%</td>
+                                    </tr>
+                                    <tr class="stock-item">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">603167</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">渤海轮渡</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">8.03%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">1.53%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">0.94</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">129.91%</td>
+                                    </tr>
+                                    <tr class="stock-item">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">603303</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">得邦照明</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">10.50%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">1.73%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">1.07</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">230.13%</td>
+                                    </tr>
+                                    <tr class="stock-item">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">603551</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">奥普科技</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">7.08%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">1.85%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">1.27</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">112.33%</td>
+                                    </tr>
+                                    <tr class="stock-item">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">603565</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">中谷物流</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">11.67%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">1.51%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">1.02</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">119.89%</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- 指标说明 -->
+        <section class="mb-10 bg-white rounded-xl shadow-md p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                <i class="fa fa-info-circle text-blue-500 mr-2"></i>量化指标说明
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                    <h3 class="font-semibold text-gray-800 mb-2 flex items-center">
+                        <i class="fa fa-usd text-blue-500 mr-2"></i>股息率TTM (DTOP)
+                    </h3>
+                    <p class="text-gray-700 text-sm">最近12个月的股息与股价的比率，反映股票的现金分红回报水平。数值越高，分红回报越丰厚，是量化选股的核心收益指标。</p>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                    <h3 class="font-semibold text-gray-800 mb-2 flex items-center">
+                        <i class="fa fa-area-chart text-green-500 mr-2"></i>252日残差收益波动率 (HsigmaCNE5)
+                    </h3>
+                    <p class="text-gray-700 text-sm">过去一年股票收益剔除市场整体影响后的波动程度，衡量个股的特有风险。数值越低，股票表现越稳定，是量化选股的核心风险指标。</p>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                    <h3 class="font-semibold text-gray-800 mb-2 flex items-center">
+                        <i class="fa fa-line-chart text-purple-500 mr-2"></i>120日夏普比率 (SharpeRatio120)
+                    </h3>
+                    <p class="text-gray-700 text-sm">过去6个月股票超额收益与风险的比值，反映单位风险所获得的超额回报。数值越高，风险调整后收益越好，是量化选股的核心性价比指标。</p>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                    <h3 class="font-semibold text-gray-800 mb-2 flex items-center">
+                        <i class="fa fa-percent text-orange-500 mr-2"></i>股息支付率TTM (DIV_PAIDRATIO)
+                    </h3>
+                    <p class="text-gray-700 text-sm">最近12个月公司分红总额与净利润的比率，反映公司的分红意愿和可持续性。数值越高，公司分红意愿越强，是量化选股的核心可持续性指标。</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-gray-800 text-white py-8">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <div class="flex items-center">
+                        <i class="fa fa-line-chart text-blue-400 text-2xl mr-3"></i>
+                        <h2 class="text-xl font-bold">AI量化选股助手</h2>
+                    </div>
+                    <p class="text-gray-400 text-sm mt-2">智能量化，精准选股</p>
+                </div>
+                <div class="text-gray-400 text-sm">
+                    <p>© 2025 AI量化选股助手. 保留所有权利.</p>
+                    <p class="mt-1">量化数据仅供参考，不构成投资建议</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // 平滑滚动
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>
