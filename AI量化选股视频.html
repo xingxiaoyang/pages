@@ -1,13 +1,86 @@
-<!-- 视频标题 -->
-<h2 style="color: #333; font-size: 20px; margin-bottom: 10px;">AI量化选股</h2>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI量化选股</title>
+    <!-- 统一样式管理，优化排版和响应式 -->
+    <style>
+        /* 全局样式重置与基础配置 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: "Microsoft Yahei", Arial, sans-serif;
+            background-color: #f8f9fa; /* 更柔和的背景色 */
+            padding: 2rem 1rem; /* 响应式内边距 */
+            line-height: 1.6;
+        }
+        /* 视频容器 - 居中+卡片化 */
+        .video-container {
+            max-width: 850px; /* 适度加宽容器 */
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 2.5rem;
+            border-radius: 12px; /* 更圆润的边角 */
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08); /* 更自然的阴影 */
+        }
+        /* 标题样式 - 层级更清晰 */
+        .video-title {
+            color: #2d3748; /* 更深的文字色，提升可读性 */
+            font-size: 1.8rem;
+            margin-bottom: 0.8rem;
+            font-weight: 600;
+            border-left: 4px solid #4299e1; /* 左侧装饰线，增强视觉焦点 */
+            padding-left: 0.8rem;
+        }
+        /* 副标题/介绍样式 */
+        .video-desc {
+            color: #4a5568; /* 适中的灰色，不刺眼 */
+            font-size: 1rem;
+            margin-bottom: 2rem; /* 加大与视频的间距 */
+            line-height: 1.8;
+        }
+        /* 视频播放区域 - 响应式适配 */
+        .video-player {
+            width: 100%;
+            height: auto; /* 宽高比自适应，避免变形 */
+            aspect-ratio: 16/9; /* 强制16:9比例，适配所有设备 */
+            border-radius: 8px;
+            border: none;
+            background-color: #000; /* 加载时显示黑色背景，更美观 */
+        }
+        /* 适配小屏幕设备 */
+        @media (max-width: 768px) {
+            .video-container {
+                padding: 1.5rem;
+            }
+            .video-title {
+                font-size: 1.5rem;
+            }
+            .video-desc {
+                font-size: 0.95rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="video-container">
+        <!-- 视频标题 -->
+        <h2 class="video-title">AI量化选股</h2>
 
-<!-- 视频介绍 -->
-<p style="color: #666; font-size: 14px; line-height: 1.5; margin-bottom: 20px;">
-  基于Multi-Agent架构，通过多智能体协同，将专业的量化模型封装为自然语言接口，让零基础用户也能以对话方式灵活调用，大幅降低了量化投资的使用门槛。
-</p>
+        <!-- 视频副标题/介绍 -->
+        <p class="video-desc">
+            基于Multi-Agent架构，通过多智能体协同，将专业的量化模型封装为自然语言接口，让零基础用户也能以对话方式灵活调用，大幅降低了量化投资的使用门槛。
+        </p>
 
-<!-- 视频播放区域（保留原有尺寸/控件，仅替换链接） -->
-<video width="800" height="450" controls style="border: none; border-radius: 4px;">
-  <source src="https://xxypages.oss-cn-shanghai.aliyuncs.com/ChatQuant.mp4" type="video/mp4">
-  您的浏览器不支持HTML5视频播放，请升级浏览器后重试。
-</video>
+        <!-- 视频播放区域 -->
+        <video class="video-player" controls>
+            <source src="https://xxypages.oss-cn-shanghai.aliyuncs.com/ChatQuant.mp4" type="video/mp4">
+            您的浏览器不支持HTML5视频播放，请升级浏览器后重试。
+        </video>
+    </div>
+</body>
+</html>
